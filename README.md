@@ -1,70 +1,154 @@
-# Getting Started with Create React App
+# **Code Fixes & Improvements Document**  
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## **1. Your original Code Issues**  
+The initial Tic Tac Toe implementation had several critical problems:  
 
-## Available Scripts
+### **1.1 All Boxes Used Index `0`**  
+- **Problem**: Every square passed `0` to `toggle()`, so only the first square worked.  
+- **Effect**: Clicking any square only updated the top-left cell.  
 
-In the project directory, you can run:
+### **1.2 No Overwrite Protection**  
+- **Problem**: Players could overwrite existing moves.  
+- **Effect**: Broken game rules (players could cheat).  
 
-### `npm start`
+### **1.3 Global `data` Array (Non-Stateful)**  
+- **Problem**: Used a global `let data` instead of React state.  
+- **Effect**: UI didn’t update when `data` changed.  
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### **1.4 Win Detection Used Stale State**  
+- **Problem**: `checkWin()` ran before `setCount` updated.  
+- **Effect**: Missed wins due to outdated board state.  
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### **1.5 No Toast Notifications**  
+- **Problem**: No feedback on wins/draws.  
+- **Effect**: Players couldn’t tell when the game ended.  
 
-### `npm test`
+### **1.6 Reset Button Broken**  
+- **Problem**:  
+  - Typo: `<botton>` instead of `<button>`.  
+  - No `onClick` handler.  
+- **Effect**: Reset did nothing.  
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## **2. TheACJ Fixes Implemented**  
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### **2.1 Fixed Box Indexing**  
+- **Change**: Each square now passes its correct index (`0` to `8`).  
+  ```jsx
+  // Before (all boxes used 0)
+  <div className="boxes" onClick={(e) => toggle(e, 0)}></div>
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+  // After (correct indices)
+  <div className="boxes" onClick={() => toggle(0)}></div>
+  <div className="boxes" onClick={() => toggle(1)}></div>
+  // ...up to 8
+  ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### **2.2 Added Overwrite Protection**  
+- **Change**: Prevent clicks on occupied squares.  
+  ```js
+  const toggle = (num) => {
+    if (lock || board[num] !== "") return; // Skip if occupied
+    // ...proceed with move
+  }
+  ```
 
-### `npm run eject`
+### **2.3 Replaced Global `data` with React State**  
+- **Change**: Used `useState` for the board.  
+  ```js
+  // Before (broken)
+  let data = ["", "", "", "", "", "", "", "", ""];
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+  // After (fixed)
+  const [board, setBoard] = useState(Array(9).fill(""));
+  ```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### **2.4 Fixed Win Detection**  
+- **Change**:  
+  1. Check wins **after** state updates.  
+  2. Added `gameStatus` state to trigger toasts.  
+  ```js
+  const checkWin = (currentBoard) => {
+    // Win logic...
+    if (win) {
+      setLock(true);
+      setGameStatus("win"); // Triggers toast via useEffect
+    }
+  };
+  ```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### **2.5 Added Toast Notifications**  
+- **Change**: Used `react-toastify` for win/draw alerts.  
+  ```jsx
+  // Setup toasts
+  useEffect(() => {
+    if (gameStatus === "win") {
+      toast.success(`Player ${winner} wins!`);
+    } else if (gameStatus === "draw") {
+      toast.info("It's a draw!");
+    }
+  }, [gameStatus]);
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+  // Added <ToastContainer /> to JSX
+  ```
 
-## Learn More
+### **2.6 Fixed Reset Button**  
+- **Change**:  
+  1. Fixed typo (`<button>`).  
+  2. Added `resetGame()` function.  
+  ```jsx
+  // Before (broken)
+  <botton className="reset">Reset</botton>
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+  // After (working)
+  <button className="reset" onClick={resetGame}>Reset</button>
+  ```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+---
 
-### Code Splitting
+## **3. Added Features**  
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### **3.1 Draw Detection**  
+- **Logic**: Checks if the board is full with no winner.  
+  ```js
+  if (board.every(square => square !== "")) {
+    setGameStatus("draw");
+  }
+  ```
 
-### Analyzing the Bundle Size
+### **3.2 Dynamic Player Turn**  
+- **Logic**: Uses `count % 2` to alternate `X` and `O`.  
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### **3.3 Toast Styling**  
+- **Config**:  
+  ```js
+  <ToastContainer
+    position="top-center"
+    autoClose={3000}
+    theme="colored"
+  />
+  ```
 
-### Making a Progressive Web App
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## **4. Summary of Changes**  
+| **Issue**               | **Fix**                                  |
+|-------------------------|------------------------------------------|
+| All boxes used index `0` | Correct indices (`0`–`8`) for each square |
+| No overwrite protection  | Added `board[num] !== ""` check          |
+| Global `data` array      | Replaced with React state (`useState`)   |
+| Stale win detection      | Check wins after state updates           |
+| No toasts                | Added `react-toastify` for win/draw alerts |
+| Broken reset button      | Fixed typo + added `resetGame()`         |
 
-### Advanced Configuration
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## **5. Final Result**  
+✅ **Working Tic Tac Toe** with:  
+- Correct turn-based gameplay.  
+- Win/draw detection.  
+- Toast notifications.  
+- Reset functionality.  
 
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+The game now follows **React best practices** and provides a **smooth user experience**. 🎮🚀
